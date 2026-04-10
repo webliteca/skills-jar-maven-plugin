@@ -1,7 +1,7 @@
-# GitHub Actions workflow for building and deploying to Maven Central
+# GitHub Actions workflow for building and deploying
 #
-# Uses the modern Central Publishing Maven Plugin (org.sonatype.central:central-publishing-maven-plugin)
-# NOT the legacy Sonatype OSSRH (nexus-staging-maven-plugin) approach.
+# - Push to main:  build + deploy SNAPSHOT to GitHub Packages
+# - Push tag v*:   build + deploy release to Maven Central (GPG-signed)
 #
 # Required GitHub Organization Secrets (already configured in webliteca org):
 #   GPG_PRIVATE_KEY        - Base64-encoded GPG private key
@@ -13,7 +13,7 @@
 #   git tag v1.0.0
 #   git push origin v1.0.0
 
-name: Build and Deploy to Maven Central
+name: Build and Deploy
 
 on:
   push:
@@ -36,6 +36,32 @@ jobs:
 
       - name: Build with Maven
         run: mvn -B clean verify --batch-mode -ntp
+
+  deploy-github:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: maven
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: GITHUB_TOKEN
+
+      - name: Deploy to GitHub Packages
+        run: mvn -B clean deploy --batch-mode -ntp
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   deploy:
     needs: build
