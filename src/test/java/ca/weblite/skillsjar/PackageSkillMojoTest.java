@@ -156,6 +156,49 @@ class PackageSkillMojoTest {
     }
 
     @Test
+    void packagesSkillFromScannedSubdirectory() throws Exception {
+        // Simulate: artifactId is "test-lib" but skill lives in skills/other-name/SKILL.md
+        Path skillDir = tempDir.resolve("skills/other-name");
+        Files.createDirectories(skillDir);
+        Files.write(skillDir.resolve("SKILL.md"),
+                ("---\nname: other-name\ndescription: A skill whose directory name differs from the Maven artifactId.\n---\n\n# Other\n\nDocs.\n").getBytes(StandardCharsets.UTF_8));
+
+        mojo.execute();
+
+        File expectedJar = tempDir.resolve("target/test-lib-1.0.0-skills.jar").toFile();
+        assertThat(expectedJar).exists();
+        verify(projectHelper).attachArtifact(eq(project), eq("jar"), eq("skills"), any(File.class));
+
+        // Verify the JAR contains SKILL.md from the scanned subdirectory
+        try (JarFile jf = new JarFile(expectedJar)) {
+            assertThat(jf.getEntry("skill/SKILL.md")).isNotNull();
+        }
+    }
+
+    @Test
+    void fallsBackToSkillsDirWhenMultipleSubdirectoriesHaveSkillMd() throws Exception {
+        // Two subdirectories with SKILL.md — ambiguous, should fall back to skills/ itself
+        Path skillDirA = tempDir.resolve("skills/skill-a");
+        Path skillDirB = tempDir.resolve("skills/skill-b");
+        Files.createDirectories(skillDirA);
+        Files.createDirectories(skillDirB);
+        Files.write(skillDirA.resolve("SKILL.md"),
+                ("---\nname: skill-a\ndescription: First skill in ambiguous multi-skill scenario.\n---\n\n# A\n").getBytes(StandardCharsets.UTF_8));
+        Files.write(skillDirB.resolve("SKILL.md"),
+                ("---\nname: skill-b\ndescription: Second skill in ambiguous multi-skill scenario.\n---\n\n# B\n").getBytes(StandardCharsets.UTF_8));
+        // Also put a SKILL.md at skills/ root so fallback works for the validator
+        Files.write(tempDir.resolve("skills/SKILL.md"),
+                ("---\nname: test-lib\ndescription: Root-level skill for fallback in multi-skill case.\n---\n\n# Root\n").getBytes(StandardCharsets.UTF_8));
+
+        mojo.execute();
+
+        // The mojo should fall back to skills/ itself and still produce a JAR
+        File expectedJar = tempDir.resolve("target/test-lib-1.0.0-skills.jar").toFile();
+        assertThat(expectedJar).exists();
+        verify(projectHelper).attachArtifact(eq(project), eq("jar"), eq("skills"), any(File.class));
+    }
+
+    @Test
     void usesExplicitSkillDirectory() throws Exception {
         Path customDir = tempDir.resolve("custom-skills");
         Files.createDirectories(customDir);
