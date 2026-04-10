@@ -1,0 +1,1 @@
+# skills-jar-maven-plugin
