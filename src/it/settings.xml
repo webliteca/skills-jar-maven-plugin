@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Settings file for integration tests run by maven-invoker-plugin.
+  @localRepositoryUrl@ is replaced by the invoker plugin at runtime.
+  If your environment requires a proxy, add a <proxies> section here
+  or configure your ~/.m2/settings.xml.
+-->
+<settings>
+    <localRepository>@localRepositoryUrl@</localRepository>
+</settings>
