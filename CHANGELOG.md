@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-04-10
+
+### Fixed
+
+- Skill directory auto-detection now scans `skills/` for a single subdirectory containing `SKILL.md` when `skills/${artifactId}/` doesn't exist. Previously, the fallback returned the `skills/` directory itself even when the skill subdirectory name didn't match the Maven artifactId.
+
 ## [0.1.0] - 2026-04-10
 
 ### Added

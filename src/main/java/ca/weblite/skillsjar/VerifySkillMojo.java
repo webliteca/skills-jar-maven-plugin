@@ -91,8 +91,9 @@ public class VerifySkillMojo extends AbstractMojo {
      * Resolves the skill directory using the convention chain:
      * 1. Explicit {@code skillDirectory} parameter
      * 2. {@code ${basedir}/skills/${artifactId}/}
-     * 3. {@code ${basedir}/skills/}
-     * 4. {@code null} if none found
+     * 3. Scan {@code ${basedir}/skills/} for a single subdirectory containing SKILL.md
+     * 4. {@code ${basedir}/skills/} itself
+     * 5. {@code null} if none found
      */
     File resolveSkillDirectory() {
         if (skillDirectory != null && skillDirectory.isDirectory()) {
@@ -106,10 +107,35 @@ public class VerifySkillMojo extends AbstractMojo {
 
         File fallbackDir = getFallbackDir();
         if (fallbackDir.isDirectory()) {
+            File scanned = scanForSingleSkillSubdirectory(fallbackDir);
+            if (scanned != null) {
+                return scanned;
+            }
             return fallbackDir;
         }
 
         return null;
+    }
+
+    /**
+     * Scans a directory for a single subdirectory that contains a SKILL.md file.
+     * Returns that subdirectory if exactly one is found, otherwise {@code null}.
+     */
+    static File scanForSingleSkillSubdirectory(File parent) {
+        File[] children = parent.listFiles();
+        if (children == null) {
+            return null;
+        }
+        File match = null;
+        for (File child : children) {
+            if (child.isDirectory() && new File(child, "SKILL.md").isFile()) {
+                if (match != null) {
+                    return null;
+                }
+                match = child;
+            }
+        }
+        return match;
     }
 
     private File getConventionDir() {
